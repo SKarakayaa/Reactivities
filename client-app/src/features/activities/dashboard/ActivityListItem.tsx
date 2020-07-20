@@ -6,7 +6,7 @@ import {format} from 'date-fns';
 
 const ActivityListItem: React.FC<{ activity: IActivity }> = ({ activity }) => {
   return (
-    <Segment.Group key={activity.id}>
+    <Segment.Group>
       <Segment>
         <Item.Group>
           <Item>
