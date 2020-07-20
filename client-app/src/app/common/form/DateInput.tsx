@@ -1,5 +1,4 @@
 import React from "react";
-
 import { FieldRenderProps } from "react-final-form";
 import { FormFieldProps, Form, Label } from "semantic-ui-react";
 import { DateTimePicker } from "react-widgets";

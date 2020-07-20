@@ -3,6 +3,7 @@ import { createContext, SyntheticEvent } from "react";
 import { IActivity } from "../layout/modules/activity";
 import agent from "../api/agent";
 import "mobx-react-lite/batchingForReactDom";
+import { history } from "../..";
 
 configure({ enforceActions: "always" });
 
@@ -58,6 +59,7 @@ class ActivityStore {
     let activity = this.getActivity(id);
     if (activity) {
       this.activity = activity;
+      return activity;
     } else {
       this.loadingInitial = true;
       try {
@@ -65,8 +67,10 @@ class ActivityStore {
         runInAction("getting activity", () => {
           activity.date = new Date(activity.date);
           this.activity = activity;
+          this.activityRegistry.set(activity.id, activity);
           this.loadingInitial = false;
         });
+        return activity;
       } catch (error) {
         runInAction("get activity error", () => {
           this.loadingInitial = false;
@@ -92,6 +96,7 @@ class ActivityStore {
         this.activityRegistry.set(activity.id, activity);
         this.submitting = false;
       });
+      history.push(`/activities/${activity.id}`)
     } catch (error) {
       runInAction("creating activity", () => {
         this.submitting = false;
@@ -109,6 +114,7 @@ class ActivityStore {
         this.activity = activity;
         this.submitting = false;
       });
+      history.push(`/activities/${activity.id}`)
     } catch (error) {
       runInAction("updating activity", () => {
         this.submitting = false;

@@ -1,6 +1,9 @@
 import React, { useState, FormEvent, useContext, useEffect } from "react";
 import { Segment, Form, Button, Grid } from "semantic-ui-react";
-import { IActivityFormValues } from "../../../app/layout/modules/activity";
+import {
+  IActivityFormValues,
+  ActivityFormValues,
+} from "../../../app/layout/modules/activity";
 import { v4 as uuid } from "uuid";
 import ActivityStore from "../../../app/stores/ActivityStore";
 import { observer } from "mobx-react-lite";
@@ -11,6 +14,7 @@ import TextAreaInput from "../../../app/common/form/TextAreaInput";
 import SelectInput from "../../../app/common/form/SelectInput";
 import { category } from "../../../app/common/options/categoryOptions";
 import DateInput from "../../../app/common/form/DateInput";
+import { combineDateAndTime } from "../../../app/common/util/util";
 
 interface DetailParams {
   id: string;
@@ -30,32 +34,17 @@ const ActivityForm: React.FC<RouteComponentProps<DetailParams>> = ({
     clearActivity,
   } = activityStore;
 
-  const [activity, setActivity] = useState<IActivityFormValues>({
-    id: undefined,
-    title: "",
-    category: "",
-    description: "",
-    date: undefined,
-    city: "",
-    venue: "",
-  });
+  const [activity, setActivity] = useState(new ActivityFormValues());
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (match.params.id && activity.id) {
-      loadActivity(match.params.id).then(
-        () => initialFormState && setActivity(initialFormState)
-      );
+    if (match.params.id) {
+      setLoading(true);
+      loadActivity(match.params.id)
+        .then((activity) => setActivity(new ActivityFormValues(activity)))
+        .finally(() => setLoading(false));
     }
-    return () => {
-      clearActivity();
-    };
-  }, [
-    loadActivity,
-    clearActivity,
-    match.params.id,
-    initialFormState,
-    activity.id,
-  ]);
+  }, [loadActivity, clearActivity]);
 
   // const handleInputChange = (
   //   event: FormEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -64,24 +53,19 @@ const ActivityForm: React.FC<RouteComponentProps<DetailParams>> = ({
   //   setActivity({ ...activity, [name]: value });
   // };
 
-  // const handleSubmit = () => {
-  //   if (activity.id.length === 0) {
-  //     let newActivity = {
-  //       ...activity,
-  //       id: uuid(),
-  //     };
-  //     createActivity(newActivity).then(() =>
-  //       history.push(`/activities/${newActivity.id}`)
-  //     );
-  //   } else {
-  //     editActivity(activity).then(() =>
-  //       history.push(`/activities/${activity.id}`)
-  //     );
-  //   }
-  // };
-
   const handleFinalFormSubmit = (values: any) => {
-    console.log(values);
+    var dateAndTime = combineDateAndTime(values.date, values.time);
+    const { date, time, ...activity } = values;
+    activity.date = dateAndTime;
+    if (!activity.id) {
+      let newActivity = {
+        ...activity,
+        id: uuid(),
+      };
+      createActivity(newActivity);
+    } else {
+      editActivity(activity);
+    }
   };
 
   return (
@@ -89,9 +73,10 @@ const ActivityForm: React.FC<RouteComponentProps<DetailParams>> = ({
       <Grid.Column width={10}>
         <Segment clearing>
           <FinalForm
+            initialValues={activity}
             onSubmit={handleFinalFormSubmit}
             render={({ handleSubmit }) => (
-              <Form onSubmit={handleSubmit}>
+              <Form onSubmit={handleSubmit} loading={loading}>
                 <Field
                   name="title"
                   placeholder="Title"
@@ -144,13 +129,19 @@ const ActivityForm: React.FC<RouteComponentProps<DetailParams>> = ({
                 <Button
                   loading={submitting}
                   floated="right"
+                  disabled={loading}
                   positive
                   type="submit"
                   content="Submit"
                 />
                 <Button
-                  onClick={() => history.push("/activities")}
+                  onClick={
+                    activity.id
+                      ? () => history.push(`/activities/${activity.id}`)
+                      : () => history.push("/activities")
+                  }
                   floated="right"
+                  disabled={loading}
                   type="button"
                   content="Cancel"
                 />
