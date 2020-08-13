@@ -10,7 +10,7 @@ using Persistence;
 
 namespace Application.Activities
 {
-    public class Attend
+    public class Unattend
     {
         public class Command : IRequest
         {
@@ -21,7 +21,8 @@ namespace Application.Activities
         {
             private readonly DataContext _context;
             private readonly IUserAccessor _userAccessor;
-            public Handler(DataContext context, IUserAccessor userAccessor)
+
+            public Handler(DataContext context,IUserAccessor userAccessor)
             {
                 _context = context;
                 _userAccessor = userAccessor;
@@ -29,7 +30,6 @@ namespace Application.Activities
 
             public async Task<Unit> Handle(Command request, CancellationToken cancellationToken)
             {
-                //handler logic
                 var activity = await _context.Activities.FindAsync(request.Id);
 
                 if (activity == null)
@@ -39,22 +39,19 @@ namespace Application.Activities
 
                 var attendance = await _context.UserActivities.SingleOrDefaultAsync(x => x.ActivityId == activity.Id && x.AppUserId == user.Id);
 
-                if (attendance != null)
-                    throw new RestException(HttpStatusCode.BadRequest, new { Attendance = "Alreadt attending this activity" });
+                if(attendance == null)
+                    return Unit.Value;
+                
+                if(attendance.IsHost)
+                    throw new RestException(HttpStatusCode.BadRequest,new {Attendance = "You cannot remove yourself as host"});
 
-                attendance = new Domain.UserActivity
-                {
-                    Activity=activity,
-                    AppUser=user,
-                    IsHost=true,
-                    DateJoined=DateTime.Now
-                };
-                _context.UserActivities.Add(attendance);
+                _context.UserActivities.Remove(attendance);
+
                 var success = await _context.SaveChangesAsync() > 0;
 
                 if (success) return Unit.Value;
 
-                throw new Exception("Problem saving changes");
+                throw new System.Exception("Problem Saving Changes");
             }
         }
     }
