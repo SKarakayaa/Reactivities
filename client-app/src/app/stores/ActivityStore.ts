@@ -5,12 +5,12 @@ import agent from "../api/agent";
 import "mobx-react-lite/batchingForReactDom";
 import { history } from "../..";
 import { RootStore } from "./rootStore";
-
+import { setActivityProps, createAttendee } from "../common/util/util";
 
 export default class ActivityStore {
-  rootStore:RootStore;
-  constructor(rootStore:RootStore){
-    this.rootStore=rootStore;
+  rootStore: RootStore;
+  constructor(rootStore: RootStore) {
+    this.rootStore = rootStore;
   }
 
   @observable activityRegistry = new Map();
@@ -42,11 +42,12 @@ export default class ActivityStore {
 
   @action loadActivities = async () => {
     this.loadingInitial = true;
+    const user = this.rootStore.userStore.user!;
     try {
       const activities = await agent.Activities.list();
       runInAction("loading activities", () => {
         activities.forEach((activity) => {
-          activity.date = new Date(activity.date);
+          setActivityProps(activity, this.rootStore.userStore.user!);
           this.activityRegistry.set(activity.id, activity);
         });
         this.loadingInitial = false;
@@ -70,7 +71,7 @@ export default class ActivityStore {
       try {
         activity = await agent.Activities.details(id);
         runInAction("getting activity", () => {
-          activity.date = new Date(activity.date);
+          setActivityProps(activity, this.rootStore.userStore.user!);
           this.activity = activity;
           this.activityRegistry.set(activity.id, activity);
           this.loadingInitial = false;
@@ -101,7 +102,7 @@ export default class ActivityStore {
         this.activityRegistry.set(activity.id, activity);
         this.submitting = false;
       });
-      history.push(`/activities/${activity.id}`)
+      history.push(`/activities/${activity.id}`);
     } catch (error) {
       runInAction("creating activity", () => {
         this.submitting = false;
@@ -119,7 +120,7 @@ export default class ActivityStore {
         this.activity = activity;
         this.submitting = false;
       });
-      history.push(`/activities/${activity.id}`)
+      history.push(`/activities/${activity.id}`);
     } catch (error) {
       runInAction("updating activity", () => {
         this.submitting = false;
@@ -149,4 +150,23 @@ export default class ActivityStore {
       console.log(error);
     }
   };
-};
+
+  @action attendActivity = () => {
+    const attendee = createAttendee(this.rootStore.userStore.user!);
+    if (this.activity) {
+      this.activity.attendees.push(attendee);
+      this.activity.isGoing = true;
+      this.activityRegistry.set(this.activity.id, this.activity);
+    }
+  };
+
+  @action cancelAttendence = () => {
+    if (this.activity) {
+      this.activity.attendees = this.activity.attendees.filter(
+        (a) => a.username !== this.rootStore.userStore.user!.username
+      );
+      this.activity.isGoing = false;
+      this.activityRegistry.set(this.activity.id, this.activity);
+    }
+  };
+}
