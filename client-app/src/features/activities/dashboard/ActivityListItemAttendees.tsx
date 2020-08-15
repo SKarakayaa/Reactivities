@@ -1,5 +1,4 @@
 import React from "react";
-import ActivityList from "./ActivityList";
 import { List, Image, Popup } from "semantic-ui-react";
 import { IAttendee } from "../../../app/layout/modules/activity";
 
