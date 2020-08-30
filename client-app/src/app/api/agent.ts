@@ -3,7 +3,7 @@ import { IActivity } from "../layout/modules/activity";
 import { history } from "../..";
 import { toast } from "react-toastify";
 import { IUser, IUserFormValues } from "../layout/modules/user";
-import { IProfile } from "../layout/modules/profile";
+import { IProfile, IPhoto } from "../layout/modules/profile";
 
 axios.defaults.baseURL = "http://localhost:5000/api";
 
@@ -54,6 +54,15 @@ const request = {
     axios.put(url, body).then(sleep(1000)).then(responseBody),
   delete: (url: string) =>
     axios.delete(url).then(sleep(1000)).then(responseBody),
+  postForm: (url: string, file: Blob) => {
+    let formData = new FormData();
+    formData.append("File", file);
+    return axios
+      .post(url, formData, {
+        headers: { "Content-type": "multipart/form-data" },
+      })
+      .then(responseBody);
+  },
 };
 
 const Activities = {
@@ -64,7 +73,7 @@ const Activities = {
     request.put(`/activities/${activity.id}`, activity),
   delete: (id: string) => request.delete(`/activities/${id}`),
   attend: (id: string) => request.post(`/activities/${id}/attend`, {}),
-  unattend:(id:string)=>request.delete(`/activities/${id}/attend`)
+  unattend: (id: string) => request.delete(`/activities/${id}/attend`),
 };
 
 const User = {
@@ -76,11 +85,16 @@ const User = {
 };
 
 const Profiles = {
-  get:(username:string):Promise<IProfile> => request.get(`/profiles/${username}`)
-}
+  get: (username: string): Promise<IProfile> =>
+    request.get(`/profiles/${username}`),
+  uploadPhoto: (photo: Blob): Promise<IPhoto> =>
+    request.postForm(`/photos`, photo),
+  setMainPhoto:(id:string) => request.post(`/photos/${id}/setMain`,{}),
+  deletePhoto:(id:string)=>request.delete(`/photos/${id}`)
+};
 
 export default {
   Activities,
   User,
-  Profiles
+  Profiles,
 };
